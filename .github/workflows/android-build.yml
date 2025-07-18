@@ -9,13 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
-    env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      PATH: ${{ github.workspace }}/android-sdk/platform-tools:${{ github.workspace }}/android-sdk/build-tools/34.0.0:${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ env.PATH }}
-
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v3
 
     - name: Set up Python
@@ -23,7 +18,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install system dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -37,33 +32,50 @@ jobs:
           libssl-dev \
           libffi-dev \
           libncurses5 \
-          wget
+          libjpeg-dev \
+          libfreetype6-dev \
+          libgl1-mesa-dev \
+          libgles2-mesa-dev \
+          libsdl2-dev \
+          libsdl2-image-dev \
+          libsdl2-mixer-dev \
+          libsdl2-ttf-dev \
+          libportmidi-dev \
+          libswscale-dev \
+          libavformat-dev \
+          libavcodec-dev \
+          libbz2-dev \
+          libsqlite3-dev \
+          libandroid-tools-common
 
-    - name: Install Python packages
-      run: |
         pip install --upgrade pip
-        pip install cython buildozer
+        pip install cython virtualenv
+        pip install buildozer
 
-    - name: Install Android SDK (for AIDL and build-tools)
+    - name: Set environment path for Java
+      run: echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
+
+    - name: Clean previous build (optional)
       run: |
-        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-        cd $ANDROID_SDK_ROOT/cmdline-tools
-        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
-        unzip tools.zip
-        mv cmdline-tools latest
+        if [ -f buildozer.spec ]; then
+          buildozer android clean || true
+        fi
 
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
-          "platform-tools" \
-          "platforms;android-34" \
-          "build-tools;34.0.0"
-
-    - name: Clean and Build APK
+    - name: Build APK
       run: |
-        buildozer android clean
+        if [ ! -f buildozer.spec ]; then
+          buildozer init
+        fi
+
+        sed -i 's/^android.api =.*/android.api = 34/' buildozer.spec
+        sed -i 's/^android.minapi =.*/android.minapi = 21/' buildozer.spec
+        sed -i 's/^android.sdk =.*/android.sdk = 34/' buildozer.spec
+        sed -i 's/^# android.ndk =.*/android.ndk = 25b/' buildozer.spec
+        sed -i 's/^# android.accept_sdk_license =.*/android.accept_sdk_license = True/' buildozer.spec
+
         buildozer android debug
 
-    - name: Upload APK
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: FinanceBuddyApp-APK

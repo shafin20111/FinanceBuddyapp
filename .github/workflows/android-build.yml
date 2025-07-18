@@ -7,10 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # Use 22.04 for better compatibility
+    runs-on: ubuntu-22.04
+
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      PATH: ${{ github.workspace }}/android-sdk/platform-tools:${{ github.workspace }}/android-sdk/build-tools/34.0.0:${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ env.PATH }}
 
     steps:
-    - name: Checkout source
+    - name: Checkout code
       uses: actions/checkout@v3
 
     - name: Set up Python
@@ -31,16 +36,31 @@ jobs:
           zlib1g-dev \
           libssl-dev \
           libffi-dev \
-          libncurses5
+          libncurses5 \
+          wget
 
     - name: Install Python packages
       run: |
         pip install --upgrade pip
         pip install cython buildozer
 
-    - name: Build APK with Buildozer
+    - name: Install Android SDK (for AIDL and build-tools)
       run: |
-        # buildozer.spec should already exist in your repo
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+        unzip tools.zip
+        mv cmdline-tools latest
+
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+          "platform-tools" \
+          "platforms;android-34" \
+          "build-tools;34.0.0"
+
+    - name: Clean and Build APK
+      run: |
+        buildozer android clean
         buildozer android debug
 
     - name: Upload APK

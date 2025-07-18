@@ -1,60 +1,57 @@
-name: Build Kivy Android APK
+name: Build FinanceBuddy APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
 
     env:
-      ANDROID_SDK_ROOT: $HOME/android-sdk
-      PATH: $HOME/.local/bin:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$HOME/android-sdk/build-tools/34.0.0:$PATH
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:${{ runner.temp }}/android-sdk/platform-tools:${{ runner.temp }}/android-sdk/build-tools/34.0.0:$PATH
+      # Added python user local bin for pip installs
+      PATH: $HOME/.local/bin:$PATH
 
     steps:
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Install system dependencies
+    - name: Install system packages
       run: |
-        # No sudo needed on ubuntu-latest runners, run as is
-        apt-get update
-        apt-get install -y tar unzip zip git openjdk-17-jdk python3 python3-pip \
+        sudo apt-get update
+        sudo apt-get install -y tar unzip zip git openjdk-17-jdk python3 python3-pip \
           libffi-dev build-essential libssl-dev libbz2-dev libsqlite3-dev libncursesw6 curl
 
-    - name: Install Python dependencies
+    - name: Install Python packages
       run: |
         python3 -m pip install --upgrade pip
         pip install --user buildozer cython
 
-    - name: Setup Android SDK and build tools
+    - name: Setup Android SDK cmdline tools
       run: |
         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
         cd $ANDROID_SDK_ROOT/cmdline-tools
-        curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        unzip -q cmdline-tools.zip
-        rm cmdline-tools.zip
+        curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools.zip
+        rm commandlinetools.zip
         mv cmdline-tools latest
 
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-    - name: Clean old builds
+    - name: Accept licenses and install SDK components
       run: |
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-        buildozer android clean || true
+        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+        sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653" "cmake;3.22.1"
 
-    - name: Build APK
-      run: |
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-        buildozer android debug
+    - name: Clean old builds (optional but recommended)
+      run: buildozer android clean || true
 
-    - name: Upload APK
+    - name: Build Android APK
+      run: buildozer -v android debug
+
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: FinanceBuddy.apk
+        name: FinanceBuddy-debug-apk
         path: bin/*.apk

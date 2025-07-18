@@ -10,10 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:${{ runner.temp }}/android-sdk/platform-tools:${{ runner.temp }}/android-sdk/build-tools/34.0.0:$PATH
-      # Added python user local bin for pip installs
-      PATH: $HOME/.local/bin:$PATH
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:${{ github.workspace }}/android-sdk/build-tools/34.0.0:$HOME/.local/bin:$PATH
 
     steps:
     - name: Checkout repo

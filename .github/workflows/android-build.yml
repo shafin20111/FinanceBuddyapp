@@ -10,14 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -29,18 +30,30 @@ jobs:
           unzip \
           zlib1g-dev \
           libssl-dev \
-          libffi-dev
-        pip install --upgrade pip
-        pip install cython
-        pip install buildozer
+          libffi-dev \
+          libc6-dev \
+          libncurses5 \
+          libstdc++6 \
+          libffi-dev \
+          libsqlite3-dev \
+          aidl \
+          libz-dev \
+          libbz2-dev \
+          liblzma-dev
 
-    - name: Build APK with Buildozer
+    - name: Install Python dependencies
       run: |
-        buildozer android debug
-        ls bin/
+        python3 -m pip install --upgrade pip
+        pip install cython buildozer
+
+    - name: Initialize Buildozer
+      run: buildozer android clean
+
+    - name: Build APK
+      run: buildozer android debug
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: apk
+        name: FinancePro-Kivy-APK
         path: bin/*.apk

@@ -1,0 +1,80 @@
+# Sample content for finance.kv
+WindowManager:
+    HomeScreen:
+    AddTransactionScreen:
+    ViewTransactionsScreen:
+
+<HomeScreen>:
+    name: "home"
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: 10
+        spacing: 10
+
+        Label:
+            id: balance_label
+            text: "Balance: "
+            font_size: 24
+
+        Button:
+            text: "Add Transaction"
+            on_release: app.root.current = 'add'
+
+        Button:
+            text: "View Transactions"
+            on_release: app.root.current = 'view'
+
+        Button:
+            text: "Change Currency"
+            on_release: root.open_currency_popup()
+
+<AddTransactionScreen>:
+    name: "add"
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: 10
+        spacing: 10
+
+        TextInput:
+            id: desc_input
+            hint_text: "Description"
+
+        TextInput:
+            id: amount_input
+            hint_text: "Amount"
+            input_filter: 'float'
+
+        Spinner:
+            id: type_spinner
+            text: "Income"
+            values: ["Income", "Expense"]
+
+        Button:
+            text: "Save"
+            on_release: root.add_transaction()
+
+        Button:
+            text: "Back"
+            on_release: app.root.current = 'home'
+
+<ViewTransactionsScreen>:
+    name: "view"
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: 10
+        spacing: 10
+
+        ScrollView:
+            Label:
+                id: trans_label
+                text: ""
+                size_hint_y: None
+                height: self.texture_size[1]
+                text_size: self.width, None
+
+        Button:
+            text: "Back"
+            on_release: app.root.current = 'home'

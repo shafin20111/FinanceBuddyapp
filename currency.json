@@ -1,0 +1,10 @@
+# Sample content for currency.json
+{
+  "currencies": [
+    {"name": "US Dollar", "code": "USD", "symbol": "$"},
+    {"name": "Bangladeshi Taka", "code": "BDT", "symbol": "৳"},
+    {"name": "Euro", "code": "EUR", "symbol": "€"},
+    {"name": "Indian Rupee", "code": "INR", "symbol": "₹"}
+  ],
+  "selected": "USD"
+}

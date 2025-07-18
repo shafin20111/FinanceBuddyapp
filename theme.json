@@ -1,0 +1,7 @@
+# Sample content for theme.json
+{
+  "primary_color": "#3498db",
+  "secondary_color": "#2ecc71",
+  "background_color": "#ecf0f1",
+  "text_color": "#2c3e50"
+}

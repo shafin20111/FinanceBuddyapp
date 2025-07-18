@@ -1,50 +1,79 @@
-name: Buildozer Android Build
+name: Build Android APK with Buildozer
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:${{ runner.temp }}/android-sdk/platform-tools:$PATH
+
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             python3-pip \
             python3-setuptools \
-            python3-dev \
-            build-essential \
             git \
+            openjdk-17-jdk \
             unzip \
-            zip \
-            libssl-dev \
-            libffi-dev \
-            libsqlite3-dev \
-            openjdk-11-jdk \
             wget \
-            curl \
-            libncurses5
+            tar \
+            libncurses6
 
-      - name: Install Buildozer and dependencies
+          # Install libncurses5 manually if needed (some Android tools require it)
+          wget http://archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libncurses5_6.2-0ubuntu2_amd64.deb
+          sudo dpkg -i libncurses5_6.2-0ubuntu2_amd64.deb || true
+
+      - name: Install Buildozer and python-for-android
         run: |
-          pip3 install --upgrade pip
-          pip3 install buildozer cython
+          python3 -m pip install --upgrade pip
+          python3 -m pip install buildozer
 
-      - name: Initialize Buildozer (download android SDK/NDK etc.)
-        run: buildozer android clean
+      - name: Setup Android SDK cmdline-tools
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+          rm cmdline-tools.zip
 
-      - name: Build APK
-        run: buildozer -v android debug
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Install Android SDK packages
+        run: |
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.1.8937393" "cmake;3.22.1" "cmdline-tools;latest"
+
+      - name: Verify aidl exists
+        run: |
+          if [ ! -f "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" ]; then
+            echo "Error: aidl not found, build-tools install failed!"
+            exit 1
+          fi
+
+      - name: Build APK using Buildozer
+        working-directory: ${{ github.workspace }}
+        run: |
+          export ANDROIDSDK=$ANDROID_SDK_ROOT
+          export ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/25.1.8937393
+          export ANDROID_HOME=$ANDROID_SDK_ROOT
+          buildozer android debug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: apk-debug
+          name: app-debug-apk
           path: bin/*.apk
